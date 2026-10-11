@@ -1,4 +1,5 @@
 import os
+import streamlit as st
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -6,7 +7,14 @@ from tools import search_event_schedule, log_attendee_inquiry
 
 load_dotenv()
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+# Check Streamlit Cloud secrets first, then fall back to local .env
+api_key = None
+if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+    api_key = st.secrets["GEMINI_API_KEY"]
+else:
+    api_key = os.getenv("GEMINI_API_KEY")
+
+client = genai.Client(api_key=api_key)
 
 SYSTEM_INSTRUCTION = """
 You are PulseAgent, the autonomous Event Co-Pilot and Community Assistant for DevFest 2026.
@@ -25,13 +33,16 @@ def run_pulse_agent(user_message: str, chat_history: list = None) -> tuple[str, 
     )
 
     chat = client.chats.create(
-        model="gemini-3.8-flash",
+        model="gemini-2.5-flash",
         config=config,
         history=chat_history or []
     )
 
-    response = chat.send_message(user_message)
-    return response.text, chat.get_history()
+    try:
+        response = chat.send_message(user_message)
+        return response.text, chat.get_history()
+    except Exception as e:
+        return f"⚠️ Service temporarily unavailable: {str(e)}. Please retry in a moment.", chat_history or []
 
 if __name__ == "__main__":
     print("Testing PulseAgent...")
