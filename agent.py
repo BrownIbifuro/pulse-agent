@@ -7,7 +7,7 @@ from tools import search_event_schedule, log_attendee_inquiry
 
 load_dotenv()
 
-# Read API key from Streamlit secrets (Cloud) or local .env
+# Read API key from Streamlit secrets or local .env
 api_key = None
 if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
     api_key = st.secrets["GEMINI_API_KEY"]
