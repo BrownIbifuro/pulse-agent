@@ -7,7 +7,7 @@ from tools import search_event_schedule, log_attendee_inquiry
 
 load_dotenv()
 
-# Check Streamlit Cloud secrets first, then fall back to local .env
+# Read API key from Streamlit secrets (Cloud) or local .env
 api_key = None
 if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
     api_key = st.secrets["GEMINI_API_KEY"]
@@ -25,26 +25,22 @@ Your responsibilities:
 4. Never invent session details or fake ticket IDs—always query your tools.
 """
 
-def run_pulse_agent(user_message: str, chat_history: list = None) -> tuple[str, list]:
+def create_agent_chat():
+    """Initializes a fresh, persistent chat session with tools attached."""
     config = types.GenerateContentConfig(
         system_instruction=SYSTEM_INSTRUCTION,
         tools=[search_event_schedule, log_attendee_inquiry],
         temperature=0.1
     )
-
-    chat = client.chats.create(
+    return client.chats.create(
         model="gemini-2.5-flash",
-        config=config,
-        history=chat_history or []
+        config=config
     )
 
+def ask_pulse_agent(chat_session, user_message: str) -> str:
+    """Sends a message to an active chat session with automatic tool calling."""
     try:
-        response = chat.send_message(user_message)
-        return response.text, chat.get_history()
+        response = chat_session.send_message(user_message)
+        return response.text
     except Exception as e:
-        return f"⚠️ Service temporarily unavailable: {str(e)}. Please retry in a moment.", chat_history or []
-
-if __name__ == "__main__":
-    print("Testing PulseAgent...")
-    reply, _ = run_pulse_agent("What AI sessions are taking place today?")
-    print(f"Agent: {reply}")
+        return f"⚠️ Service error: {str(e)}. Please retry."
