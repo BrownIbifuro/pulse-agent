@@ -33,7 +33,7 @@ def create_agent_chat():
         temperature=0.1
     )
     return client.chats.create(
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         config=config
     )
 
